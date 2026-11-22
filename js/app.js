@@ -21,7 +21,20 @@ const app = $('#app');
 const h = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const fmt = (secs) => `${Math.floor(secs / 60)}:${String(Math.floor(secs % 60)).padStart(2, '0')}`;
 const zoneName = (z) => ZONES.find((x) => x.id === z)?.name || z;
-const zoneEmoji = (z) => ZONES.find((x) => x.id === z)?.emoji || '✨';
+const P = {
+  back: '<path d="M15 5l-7 7 7 7"/>', chev: '<path d="M9 5l7 7-7 7"/>', plus: '<path d="M12 5v14M5 12h14"/>',
+  close: '<path d="M6 6l12 12M18 6 6 18"/>', play: '<path d="M8 5.5v13l11-6.5z"/>', pause: '<path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/>',
+  prev: '<path d="M18 6 9 12l9 6zM6 6v12"/>', next: '<path d="M6 6l9 6-9 6zM18 6v12"/>',
+  cam: '<path d="M4 8h3l2-2.5h6L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+  snd: '<path d="M4 10v4h4l5 4V6L8 10z"/><path d="M16.5 9a4 4 0 0 1 0 6M19 6.5a7.5 7.5 0 0 1 0 11"/>',
+  mute: '<path d="M4 10v4h4l5 4V6L8 10z"/><path d="M17 10l4 4M21 10l-4 4"/>',
+  shuffle: '<path d="M4 7h3c4 0 6 10 10 10h3M4 17h3c1.5 0 2.6-1.4 3.6-3M14 9.5C15 8 16 7 17 7h3M18 4l3 3-3 3M18 14l3 3-3 3"/>',
+  flame: '<path d="M12 21c-3.9 0-6.5-2.6-6.5-6.2 0-3.6 3-5.3 3.5-9.3 2.4 1.2 3.6 3.4 3.6 5.2 1-.6 1.8-1.7 2-3 1.7 1.6 3.9 4 3.9 7.1 0 3.6-2.6 6.2-6.5 6.2z"/>',
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+};
+const I = (n) => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${P[n]}</svg>`;
+const BACK = (href) => `<a href="${href}" class="back" aria-label="Atrás">${I('back')}</a>`;
+const ARROW = `<span class="arrow">${I('chev')}</span>`;
 
 // ───────── router ─────────
 let cleanup = [];
@@ -85,12 +98,12 @@ function welcome() {
   layout(`
   <section class="welcome">
     <div class="hero-fig"><canvas data-ex="jacks" data-anim="1"></canvas></div>
-    <h1>¡Hola! 👋</h1>
+    <h1>Hola</h1>
     <p class="lead">Tu entrenadora personal en casa: entrenos de 10 a 60 minutos, demostración de cada ejercicio y la cámara te corrige la postura en directo.</p>
     <label class="field"><span>¿Cómo te llamas?</span><input id="nm" autocomplete="given-name" placeholder="Tu nombre" value="${h(S.name)}"></label>
     <label class="field"><span>Peso aproximado (kg) <small>para calcular calorías</small></span><input id="wt" type="number" inputmode="numeric" value="${S.weight}"></label>
     <label class="check"><input type="checkbox" id="nj" ${S.noJump ? 'checked' : ''}> Prefiero ejercicios sin saltos (cuida rodillas y suelo pélvico)</label>
-    <p class="privacy">🔒 Todo se queda en este iPhone. La cámara se analiza en el propio móvil y no se graba ni se envía a ningún sitio.</p>
+    <p class="privacy">Todo se queda en este iPhone. La cámara se analiza en el propio móvil y no se graba ni se envía a ningún sitio.</p>
     <button class="btn big" id="go">Empezar</button>
   </section>`);
   $('#go').onclick = () => {
@@ -115,24 +128,24 @@ function home() {
     const w = buildWorkout(parseKey(k));
     const first = w.items.find((i) => i.kind === 'work' && i.phase.startsWith('Bloque'))?.id || w.items[0].id;
     return `<a class="pl" href="#/entreno/${k}">
-      <div class="pl-fig"><canvas data-ex="${first}"></canvas><span class="pl-min">${p.minutes}<small>min</small></span></div>
+      <div class="pl-fig"><canvas data-ex="${first}"></canvas></div>
       <div class="pl-txt"><b>${h(p.title)}</b><span>${h(p.desc)}</span>
-      <span class="tags"><i class="int ${p.intensity}">${INTENSITY[p.intensity].name}</i><i>${zoneEmoji(p.zone)} ${zoneName(p.zone)}</i></span></div></a>`;
+      <span class="tags"><i class="min">${p.minutes} min</i><i class="int ${p.intensity}">${INTENSITY[p.intensity].name}</i><i>${zoneName(p.zone)}</i></span></div></a>`;
   };
   const groups = [[10, 15], [20], [30], [40, 50, 60]];
   layout(`
-  <header class="top"><div><small>${greet}</small><h1>${S.name ? h(S.name) : 'Hola'} 💪</h1></div>
-    <div class="streak" title="Días seguidos">🔥 ${streak()}</div></header>
+  <header class="top"><div><small>${greet}</small><h1>${S.name ? h(S.name) : 'Hola'}</h1></div>
+    <div class="streak" title="Días seguidos">${I('flame')}<b>${streak()}</b></div></header>
   <section class="week-card">
     <div class="ring" style="--p:${pct}"><span>${wm}<small>/${S.weekGoal} min</small></span></div>
-    <div><b>Esta semana</b><p>${pct >= 100 ? '¡Objetivo cumplido! 🎉' : `Te faltan ${Math.max(0, S.weekGoal - wm)} min para tu objetivo semanal.`}</p></div>
+    <div><b>Esta semana</b><p>${pct >= 100 ? 'Objetivo cumplido.' : `Te faltan ${Math.max(0, S.weekGoal - wm)} min para tu objetivo semanal.`}</p></div>
   </section>
   <section class="today">
     <small>Hoy, ${today.day.toLowerCase()}, toca</small>
     <h2>${h(today.label)}</h2>
     ${todayKey ? `<a class="btn" href="#/entreno/${todayKey}">Ver entreno de hoy · 30 min</a>` : '<p>Sal a caminar a buen ritmo o haz estiramientos suaves.</p><a class="btn ghost" href="#/entreno/' + wkKey({ minutes: 15, zone: 'estiramiento', intensity: 'suave', pelvic: S.pelvic }) + '">Estiramientos 15 min</a>'}
   </section>
-  <a class="create" href="#/crear"><span>✨</span><div><b>Crear mi entreno</b><small>Elige minutos, zona e intensidad</small></div><span class="arrow">›</span></a>
+  <a class="create" href="#/crear"><span>${I('plus')}</span><div><b>Crear mi entreno</b><small>Minutos, zona e intensidad</small></div>${ARROW}</a>
   ${groups.map((g) => `<h3 class="sec">${g.join(', ').replace(/, (\d+)$/, ' y $1')} minutos</h3><div class="pls">${PRESETS.filter((p) => g.includes(p.minutes)).map(card).join('')}</div>`).join('')}
   `);
 }
@@ -142,10 +155,10 @@ function create() {
   const mins = [10, 15, 20, 30, 40, 45, 50, 60];
   const render = () => {
     layout(`
-    <header class="bar"><a href="#/" class="back">‹</a><h2>Crear entreno</h2></header>
+    <header class="bar">${BACK('#/')}<h2>Crear entreno</h2></header>
     <section class="form">
       <h4>Duración</h4><div class="chips">${mins.map((m) => `<button data-m="${m}" class="${st.minutes === m ? 'on' : ''}">${m} min</button>`).join('')}</div>
-      <h4>Zona</h4><div class="chips">${ZONES.map((z) => `<button data-z="${z.id}" class="${st.zone === z.id ? 'on' : ''}">${z.emoji} ${z.name}</button>`).join('')}</div>
+      <h4>Zona</h4><div class="chips">${ZONES.map((z) => `<button data-z="${z.id}" class="${st.zone === z.id ? 'on' : ''}">${z.name}</button>`).join('')}</div>
       <h4>Intensidad</h4><div class="chips int">${Object.entries(INTENSITY).map(([k, v]) => `<button data-i="${k}" class="${st.intensity === k ? 'on' : ''} ${k}">${v.name}</button>`).join('')}</div>
       <p class="hint">${{ suave: 'Ritmo tranquilo, descansos largos, sin saltos. Ideal para empezar o días cansados.', moderado: 'Trabajo 40 s / descanso 20 s. El punto ideal para la mayoría de días.', intenso: 'Tipo HIIT: 45 s a tope / 15 s de descanso. Recomendado como mucho 2 veces por semana.' }[st.intensity]}</p>
       <label class="check"><input type="checkbox" id="nj" ${st.noJump ? 'checked' : ''}> Sin saltos</label>
@@ -174,18 +187,18 @@ function workoutView(key) {
     if (ph !== lastPhase && it.kind === 'work') { head = `<h4 class="phase">${h(it.phase.startsWith('Bloque') ? 'Bloque principal' : ph)}</h4>`; lastPhase = ph; }
     if (it.kind === 'rest') return '';
     const ex = BY_ID[it.id];
-    return `${head}<a class="row" href="#/ejercicio/${ex.id}"><canvas data-ex="${ex.id}"></canvas><div><b>${h(ex.name)}</b><small>${it.secs} s${it.round ? ` · ronda ${it.round}` : ''}</small></div><span class="arrow">›</span></a>`;
+    return `${head}<a class="row" href="#/ejercicio/${ex.id}"><canvas data-ex="${ex.id}"></canvas><div><b>${h(ex.name)}</b><small>${it.secs} s${it.round ? ` · ronda ${it.round}` : ''}</small></div>${ARROW}</a>`;
   }).join('');
   const hiitWarn = opts.intensity === 'intenso' && hiitThisWeek() >= 2;
   layout(`
-  <header class="bar"><a href="javascript:history.back()" class="back">‹</a><h2>${h(title)}</h2></header>
+  <header class="bar">${BACK('javascript:history.back()')}<h2>${h(title)}</h2></header>
   <section class="wk-head">
     <div class="stats"><div><b>${Math.round(w.secs / 60)}</b><small>min</small></div><div><b>${w.unique.length}</b><small>ejercicios</small></div><div><b>~${kcal(w, S.weight)}</b><small>kcal</small></div></div>
-    <span class="tags"><i class="int ${opts.intensity}">${INTENSITY[opts.intensity].name}</i><i>${zoneEmoji(opts.zone)} ${zoneName(opts.zone)}</i>${opts.noJump ? '<i>Sin saltos</i>' : ''}</span>
+    <span class="tags"><i class="int ${opts.intensity}">${INTENSITY[opts.intensity].name}</i><i>${zoneName(opts.zone)}</i>${opts.noJump ? '<i>Sin saltos</i>' : ''}</span>
     ${hiitWarn ? '<p class="warn">Ya llevas 2 entrenos intensos esta semana. Para recuperar bien, hoy mejor uno moderado.</p>' : ''}
-    <label class="check"><input type="checkbox" id="cam" ${S.camera ? 'checked' : ''}> 📷 Usar la cámara para corregirme</label>
-    <button class="btn big" id="start">▶ Empezar</button>
-    <button class="btn ghost" id="other">🔀 Otra variante</button>
+    <label class="check"><input type="checkbox" id="cam" ${S.camera ? 'checked' : ''}> Usar la cámara para corregirme</label>
+    <button class="btn big" id="start">Empezar</button>
+    <button class="btn ghost" id="other">${I('shuffle')} Otra variante</button>
   </section>
   <section class="list">${rows}</section>`);
   $('#cam').onchange = (e) => { S.camera = e.target.checked; save(); };
@@ -199,8 +212,8 @@ function library() {
     const list = EXERCISES.filter((e) => filter === 'todos' || e.zones.includes(filter));
     layout(`
     <header class="top"><h1>Ejercicios</h1></header>
-    <div class="chips scroll">${[{ id: 'todos', name: 'Todos', emoji: '' }, ...ZONES].map((z) => `<button data-z="${z.id}" class="${filter === z.id ? 'on' : ''}">${z.emoji} ${z.name}</button>`).join('')}</div>
-    <section class="grid">${list.map((e) => `<a class="tile" href="#/ejercicio/${e.id}"><canvas data-ex="${e.id}"></canvas><b>${h(e.name)}</b><small>${'●'.repeat(e.level)}${'○'.repeat(3 - e.level)} ${e.impact === 'alto' ? '· con saltos' : ''}</small></a>`).join('')}</section>`);
+    <div class="chips scroll">${[{ id: 'todos', name: 'Todos' }, ...ZONES].map((z) => `<button data-z="${z.id}" class="${filter === z.id ? 'on' : ''}">${z.name}</button>`).join('')}</div>
+    <section class="grid">${list.map((e) => `<a class="tile" href="#/ejercicio/${e.id}"><canvas data-ex="${e.id}"></canvas><b>${h(e.name)}</b><small>${['Fácil', 'Media', 'Difícil'][e.level - 1]}${e.impact === 'alto' ? ' · con saltos' : ''}</small></a>`).join('')}</section>`);
     app.querySelectorAll('[data-z]').forEach((b) => (b.onclick = () => { filter = b.dataset.z; render(); }));
   };
   render();
@@ -211,18 +224,18 @@ function exerciseView(id) {
   if (!ex) return go('#/ejercicios');
   const link = (eid, label) => eid ? `<a class="btn ghost small" href="#/ejercicio/${eid}">${label}: ${h(BY_ID[eid].name)}</a>` : '';
   layout(`
-  <header class="bar"><a href="javascript:history.back()" class="back">‹</a><h2>${h(ex.name)}</h2></header>
+  <header class="bar">${BACK('javascript:history.back()')}<h2>${h(ex.name)}</h2></header>
   <div class="demo"><canvas data-ex="${ex.id}" data-anim="1"></canvas>
     <div class="speed"><button data-s="0.5">0.5×</button><button data-s="1" class="on">1×</button></div></div>
   <section class="info">
-    <p class="muscles">🎯 ${h(ex.muscles)}</p>
-    <span class="tags"><i>Nivel ${'●'.repeat(ex.level)}${'○'.repeat(3 - ex.level)}</i><i>${ex.impact === 'alto' ? 'Con saltos' : 'Sin impacto'}</i>${ex.noCamera ? '' : `<i>📷 ${ex.coach.view === 'side' ? 'Ponte de lado' : 'Ponte de frente'}</i>`}</span>
+    <p class="muscles">${h(ex.muscles)}</p>
+    <span class="tags"><i>Nivel ${['fácil', 'medio', 'difícil'][ex.level - 1]}</i><i>${ex.impact === 'alto' ? 'Con saltos' : 'Sin impacto'}</i>${ex.noCamera ? '' : `<i>${ex.coach.view === 'side' ? 'Ponte de lado' : 'Ponte de frente'}</i>`}</span>
     <h4>Cómo se hace</h4><ol>${ex.steps.map((s) => `<li>${h(s)}</li>`).join('')}</ol>
     ${ex.tips.length ? `<h4>Consejos</h4><ul class="ok">${ex.tips.map((s) => `<li>${h(s)}</li>`).join('')}</ul>` : ''}
     ${ex.errors.length ? `<h4>Errores típicos</h4><ul class="bad">${ex.errors.map((s) => `<li>${h(s)}</li>`).join('')}</ul>` : ''}
     <div class="alt">${link(ex.easier, 'Más fácil')}${link(ex.harder, 'Más difícil')}</div>
-    <button class="btn" id="listen">🔊 Escuchar explicación</button>
-    ${ex.noCamera ? '' : '<button class="btn big" id="try">📷 Practicar con cámara</button>'}
+    <button class="btn ghost" id="listen">${I('snd')} Escuchar explicación</button>
+    ${ex.noCamera ? '' : `<button class="btn big" id="try">${I('cam')} Practicar con cámara</button>`}
   </section>`);
   const fig = new Figure($('.demo canvas'), ex);
   // reemplaza la figura animada creada por layout para poder cambiar la velocidad
@@ -252,7 +265,7 @@ async function player() {
   layout(`
   <div class="player">
     <div class="p-top">
-      <button class="icon" id="close">✕</button>
+      <button class="icon" id="close" aria-label="Cerrar">${I('close')}</button>
       <div class="p-phase" id="phase"></div>
       <div class="p-total" id="total"></div>
     </div>
@@ -272,11 +285,11 @@ async function player() {
     <div class="p-reps" id="reps" hidden><b id="rc">0</b><small>repeticiones</small><span id="rq"></span></div>
     <div class="p-next" id="next"></div>
     <div class="p-ctrl">
-      <button class="icon" id="prev">⏮</button>
-      <button class="icon main" id="pp">⏸</button>
-      <button class="icon" id="skip">⏭</button>
-      <button class="icon" id="camb" ${useCam ? '' : 'hidden'}>📷</button>
-      <button class="icon" id="snd">${S.voice ? '🔊' : '🔇'}</button>
+      <button class="icon" id="prev" aria-label="Anterior">${I('prev')}</button>
+      <button class="icon main" id="pp" aria-label="Pausa">${I('pause')}</button>
+      <button class="icon" id="skip" aria-label="Siguiente">${I('next')}</button>
+      <button class="icon" id="camb" aria-label="Cámara" ${useCam ? '' : 'hidden'}>${I('cam')}</button>
+      <button class="icon" id="snd" aria-label="Voz">${I(S.voice ? 'snd' : 'mute')}</button>
     </div>
   </div>`);
   document.body.classList.add('playing');
@@ -326,7 +339,7 @@ async function player() {
         onStatus: ({ state, msg }) => {
           const el = $('#camst');
           el.className = 'cam-status ' + state;
-          el.textContent = state === 'ok' ? '✓ Te veo bien' : msg;
+          el.textContent = state === 'ok' ? 'Te veo bien' : msg;
         },
       });
       stage.classList.add('cam');
@@ -358,7 +371,7 @@ async function player() {
     stage.classList.toggle('resting', rest);
     $('#lbl').textContent = rest ? 'Descanso · prepárate para' : it.phase;
     $('#nm').textContent = ex.name;
-    $('#tip').textContent = rest ? (ex.coach && !ex.noCamera && camOn ? `📷 ${ex.coach.view === 'side' ? 'Ponte de lado al móvil' : 'Ponte de frente al móvil'} · ` : '') + (ex.steps[0] || '') : (ex.tips[0] || ex.steps[0] || '');
+    $('#tip').textContent = rest ? (ex.coach && !ex.noCamera && camOn ? `${ex.coach.view === 'side' ? 'Ponte de lado al móvil' : 'Ponte de frente al móvil'} · ` : '') + (ex.steps[0] || '') : (ex.tips[0] || ex.steps[0] || '');
     $('#phase').textContent = it.phase.replace('Bloque principal · ', '');
     $('#ov').innerHTML = rest ? `<div class="rest-badge">DESCANSO</div>` : '';
     const nxt = nextWork(idx + 1);
@@ -454,7 +467,7 @@ async function player() {
 
   function togglePause() {
     paused = !paused;
-    $('#pp').textContent = paused ? '▶' : '⏸';
+    $('#pp').innerHTML = I(paused ? 'play' : 'pause');
     stage.classList.toggle('paused', paused);
     if (paused) { $('#ov').innerHTML = '<div class="rest-badge">PAUSA</div>'; speechSynthesis?.cancel(); }
     else { $('#ov').innerHTML = ''; last = performance.now(); if (w.items[idx]?.kind === 'rest') $('#ov').innerHTML = '<div class="rest-badge">DESCANSO</div>'; }
@@ -462,7 +475,7 @@ async function player() {
   $('#pp').onclick = togglePause;
   $('#skip').onclick = () => { if (prep) { prep = false; begin(0); } else begin(idx + 1); };
   $('#prev').onclick = () => { if (prep) return; let i = idx - 1; while (i > 0 && w.items[i].kind === 'rest') i--; begin(Math.max(0, i)); };
-  $('#snd').onclick = (e) => { S.voice = !S.voice; save(); setVoiceEnabled(S.voice); e.target.textContent = S.voice ? '🔊' : '🔇'; };
+  $('#snd').onclick = (e) => { S.voice = !S.voice; save(); setVoiceEnabled(S.voice); e.currentTarget.innerHTML = I(S.voice ? 'snd' : 'mute'); };
   $('#close').onclick = () => {
     if (elapsed > 60 && !confirmLeave()) return;
     if (elapsed > 60) finish(); else go(meta.practice ? '#/ejercicio/' + meta.practice : '#/entreno/' + meta.key);
@@ -477,13 +490,13 @@ function summary() {
   const rows = Object.entries(last.stats || {}).map(([id, s]) => `<li><span>${h(BY_ID[id].name)}</span><b>${s.reps} reps · ${Math.round((s.good / Math.max(1, s.reps)) * 100)}%</b></li>`).join('');
   layout(`
   <section class="done">
-    <div class="confetti">🎉</div>
+    <div class="confetti">${I('check')}</div>
     <h1>¡Enhorabuena${S.name ? ', ' + h(S.name) : ''}!</h1>
     <p>${h(last.title || 'Entreno')}</p>
-    <div class="stats"><div><b>${Math.round(last.secs / 60)}</b><small>min</small></div><div><b>${last.kcal}</b><small>kcal</small></div><div><b>🔥 ${streak()}</b><small>días seguidos</small></div></div>
+    <div class="stats"><div><b>${Math.round(last.secs / 60)}</b><small>min</small></div><div><b>${last.kcal}</b><small>kcal</small></div><div><b>${streak()}</b><small>días seguidos</small></div></div>
     ${tech != null ? `<div class="tech"><b>${tech}%</b><span>técnica correcta (${last.good} de ${last.reps} repeticiones)</span></div><ul class="ex-stats">${rows}</ul>` : ''}
     <h4>¿Qué tal te ha parecido?</h4>
-    <div class="chips feel"><button data-f="facil">😌 Fácil</button><button data-f="bien">🙂 Bien</button><button data-f="duro">🥵 Duro</button></div>
+    <div class="chips feel"><button data-f="facil">Fácil</button><button data-f="bien">Bien</button><button data-f="duro">Duro</button></div>
     <p class="hint" id="adv"></p>
     <a class="btn big" href="#/">Volver al inicio</a>
   </section>`);
@@ -493,7 +506,7 @@ function summary() {
     if (e && e.date === last.date) { e.feel = b.dataset.f; save(); }
     const recent = S.history.slice(-3).map((x) => x.feel);
     $('#adv').textContent = b.dataset.f === 'facil'
-      ? (recent.filter((f) => f === 'facil').length >= 2 ? 'Llevas varios entrenos fáciles: prueba a subir la intensidad o los minutos. 💪' : '¡Genial! Si sigue siendo fácil, la próxima vez sube un nivel.')
+      ? (recent.filter((f) => f === 'facil').length >= 2 ? 'Llevas varios entrenos fáciles: prueba a subir la intensidad o los minutos.' : '¡Genial! Si sigue siendo fácil, la próxima vez sube un nivel.')
       : b.dataset.f === 'duro' ? 'Normal al principio. La próxima vez puedes bajar a «Suave» o elegir menos minutos. Lo importante es la constancia.' : '¡Perfecto, ese es el punto ideal!';
   }));
 }
@@ -508,14 +521,14 @@ function progress() {
   const totK = S.history.reduce((a, b) => a + (b.kcal || 0), 0);
   layout(`
   <header class="top"><h1>Mi progreso</h1></header>
-  <section class="stats big"><div><b>${S.history.length}</b><small>entrenos</small></div><div><b>${totMin}</b><small>minutos</small></div><div><b>${totK}</b><small>kcal</small></div><div><b>🔥 ${streak()}</b><small>racha</small></div></section>
+  <section class="stats big"><div><b>${S.history.length}</b><small>entrenos</small></div><div><b>${totMin}</b><small>minutos</small></div><div><b>${totK}</b><small>kcal</small></div><div><b>${streak()}</b><small>racha</small></div></section>
   <h3 class="sec">Últimas 4 semanas</h3>
   <section class="cal">${cal.map((c) => `<span class="${days.has(c.k) ? 'on' : ''} ${c.today ? 'today' : ''}">${c.n}</span>`).join('')}</section>
   <h3 class="sec">Plan semanal recomendado</h3>
   <section class="weekplan">${WEEK.map((x, i) => `<div class="${i === (new Date().getDay() + 6) % 7 ? 'now' : ''}"><b>${x.day}</b><span>${h(x.label)}</span></div>`).join('')}</section>
   <p class="hint">Basado en las recomendaciones para mujeres adultas: 150 min de actividad a la semana, fuerza 2-3 días, intervalos intensos como mucho 2 días y suelo pélvico a diario.</p>
   <h3 class="sec">Historial</h3>
-  <section class="hist">${hist.length ? hist.slice(0, 40).map((x) => `<div><b>${h(x.title || 'Entreno')}</b><small>${new Date(x.date).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })} · ${Math.round(x.secs / 60)} min · ${x.kcal} kcal${x.reps ? ` · técnica ${Math.round((x.good / x.reps) * 100)}%` : ''}${x.feel ? ' · ' + { facil: '😌', bien: '🙂', duro: '🥵' }[x.feel] : ''}</small></div>`).join('') : '<p class="empty">Aquí aparecerán tus entrenos.</p>'}</section>`);
+  <section class="hist">${hist.length ? hist.slice(0, 40).map((x) => `<div><b>${h(x.title || 'Entreno')}</b><small>${new Date(x.date).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })} · ${Math.round(x.secs / 60)} min · ${x.kcal} kcal${x.reps ? ` · técnica ${Math.round((x.good / x.reps) * 100)}%` : ''}${x.feel ? ' · ' + { facil: 'fácil', bien: 'bien', duro: 'duro' }[x.feel] : ''}</small></div>`).join('') : '<p class="empty">Aquí aparecerán tus entrenos.</p>'}</section>`);
 }
 
 function settings() {
@@ -535,9 +548,9 @@ function settings() {
     <h4>Entrenos</h4>
     <label class="check"><input type="checkbox" id="nj" ${S.noJump ? 'checked' : ''}> Sin saltos</label>
     <label class="check"><input type="checkbox" id="pv" ${S.pelvic ? 'checked' : ''}> Suelo pélvico al final</label>
-    <button class="btn ghost" id="test">🔊 Probar voz</button>
+    <button class="btn ghost" id="test">${I('snd')} Probar voz</button>
     <button class="btn danger" id="reset">Borrar historial</button>
-    <p class="hint">🔒 Todo se guarda solo en este iPhone. La cámara se procesa en el propio móvil.</p>
+    <p class="hint">Todo se guarda solo en este iPhone. La cámara se procesa en el propio móvil.</p>
     <p class="hint">Consejo: si tienes alguna lesión, dolor o problema de salud, consulta con tu médico o fisio antes de hacer los entrenos intensos.</p>
   </section>`);
   const bind = (id, key, fn = (e) => e.target.value) => ($('#' + id).onchange = (e) => { S[key] = fn(e); save(); if (key === 'voice') setVoiceEnabled(S.voice); });

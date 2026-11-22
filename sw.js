@@ -1,5 +1,5 @@
 // Guarda la app en el iPhone para que funcione sin internet.
-const V = 'entrena-v1';
+const V = 'entrena-v2';
 const CORE = [
   './', 'index.html', 'css/app.css', 'manifest.webmanifest',
   'js/app.js', 'js/exercises.js', 'js/figure.js', 'js/workouts.js', 'js/voice.js', 'js/coach.js',

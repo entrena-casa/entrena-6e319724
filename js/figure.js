@@ -1,14 +1,10 @@
-// Muñeca animada que demuestra cada ejercicio (dibujada en canvas, sin vídeos externos).
+// Figura minimalista (trazo único) que demuestra cada ejercicio (dibujada en canvas, sin vídeos externos).
 // Pose = ángulos absolutos en grados. Extremidades: 0 = hacia abajo, +90 = hacia delante (+x).
 // Tronco: 0 = vertical hacia arriba, + = inclinado hacia delante.
 // Vista 'side': mira hacia +x; 'r' = extremidades cercanas, 'l' = lejanas.
 // Vista 'front': mira a la cámara; ángulo + = hacia fuera del cuerpo.
 
 const L = { torso: 0.52, neck: 0.07, head: 0.105, ua: 0.29, fa: 0.27, th: 0.44, sh: 0.42, foot: 0.13 };
-const COL = {
-  skin: '#f0c4a4', skinFar: '#d9a888', top: '#ff5f8a', topFar: '#d9466f',
-  leg: '#5a3ea6', legFar: '#43307e', hair: '#4b2a25', shoe: '#ffffff', shoeFar: '#d8d4e8',
-};
 
 const rad = (d) => (d * Math.PI) / 180;
 const limb = (p, a, len) => ({ x: p.x + Math.sin(rad(a)) * len, y: p.y - Math.cos(rad(a)) * len });
@@ -176,89 +172,45 @@ export class Figure {
     const ox = this.dx(J);
     const P = (pt) => ({ x: cx + (pt.x + ox) * scale, y: floorY - (pt.y - ground) * scale });
 
-    // suelo y sombra
-    ctx.fillStyle = 'rgba(90,62,166,0.10)';
-    ctx.beginPath();
-    ctx.ellipse(cx + ((J.hip.x + J.sh.x) / 2 + ox) * scale, floorY + 4, Math.max(40, bw * scale * 0.38), 9, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(90,62,166,0.18)';
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(w * 0.06, floorY + 4); ctx.lineTo(w * 0.94, floorY + 4); ctx.stroke();
+    // colores del tema (heredados del CSS)
+    const cs = getComputedStyle(c);
+    const ink = cs.getPropertyValue('--ink').trim() || '#141414';
+    const accent = cs.getPropertyValue('--accent').trim() || '#e8486f';
+    const lineCol = cs.getPropertyValue('--line').trim() || '#e5e5e5';
 
-    const seg = (a, b, width, color) => {
-      const A = P(a), B = P(b);
-      ctx.strokeStyle = color; ctx.lineWidth = width * scale; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke();
-    };
-    const dot = (a, r, color) => {
-      const A = P(a);
-      ctx.fillStyle = color; ctx.beginPath(); ctx.arc(A.x, A.y, r * scale, 0, Math.PI * 2); ctx.fill();
-    };
+    // suelo: una sola línea fina
+    ctx.strokeStyle = lineCol; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(w * 0.12, floorY + 3); ctx.lineTo(w * 0.88, floorY + 3); ctx.stroke();
 
-    const drawLeg = (j, far) => {
-      seg(j.H, j.K, 0.13, far ? COL.legFar : COL.leg);
-      seg(j.K, j.A, 0.1, far ? COL.legFar : COL.leg);
-      if (j.T) seg(j.A, j.T, 0.075, far ? COL.shoeFar : COL.shoe);
-      else dot({ x: j.A.x, y: j.A.y - 0.03 }, 0.05, far ? COL.shoeFar : COL.shoe);
+    const W = Math.min(10, Math.max(2.2, 0.055 * scale)); // grosor único
+    const line = (pts, alpha = 1, width = W) => {
+      ctx.globalAlpha = alpha; ctx.strokeStyle = ink; ctx.lineWidth = width; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.beginPath();
+      pts.forEach((pt, i) => { const A = P(pt); i ? ctx.lineTo(A.x, A.y) : ctx.moveTo(A.x, A.y); });
+      ctx.stroke(); ctx.globalAlpha = 1;
     };
-    const drawArm = (j, far) => {
-      seg(j.S, j.E, 0.085, far ? COL.topFar : COL.top);
-      seg(j.E, j.W, 0.065, far ? COL.skinFar : COL.skin);
-      dot(j.W, 0.04, far ? COL.skinFar : COL.skin);
+    const leg = (j, a) => line(j.T ? [j.H, j.K, j.A, j.T] : [j.H, j.K, j.A], a);
+    const arm = (j, a) => line([j.S, j.E, j.W], a);
+    const head = () => {
+      const H = P(J.head);
+      ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(H.x, H.y, L.head * scale, 0, Math.PI * 2); ctx.fill();
     };
 
     if (this.ex.view === 'front') {
-      drawLeg(J.l, false); drawLeg(J.r, false);
-      // tronco trapezoidal
-      const a = P(J.l.S), b = P(J.r.S), d = P({ x: J.l.H.x + 0.03, y: 0.02 }), e = P({ x: J.r.H.x - 0.03, y: 0.02 });
-      ctx.fillStyle = COL.top; ctx.lineJoin = 'round'; ctx.strokeStyle = COL.top; ctx.lineWidth = 0.08 * scale;
-      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.lineTo(e.x, e.y); ctx.lineTo(d.x, d.y); ctx.closePath(); ctx.fill(); ctx.stroke();
-      // cintura (malla)
-      seg({ x: J.r.H.x, y: 0.0 }, { x: J.l.H.x, y: 0.0 }, 0.14, COL.leg);
-      drawArm(J.l, false); drawArm(J.r, false);
-      seg(J.sh, { x: J.sh.x + (J.head.x - J.sh.x) * 0.5, y: J.sh.y + (J.head.y - J.sh.y) * 0.5 }, 0.07, COL.skin);
-      // pelo (moño) + cabeza
-      dot({ x: J.head.x, y: J.head.y + L.head * 0.95 }, L.head * 0.55, COL.hair);
-      dot(J.head, L.head, COL.skin);
-      const H = P(J.head);
-      ctx.fillStyle = COL.hair;
-      ctx.beginPath(); ctx.arc(H.x, H.y, L.head * scale * 1.02, Math.PI * 1.05, Math.PI * 1.95); ctx.fill();
-      // cara
-      ctx.fillStyle = '#3a2a2a';
-      ctx.beginPath(); ctx.arc(H.x - L.head * scale * 0.35, H.y + L.head * scale * 0.05, 0.012 * scale, 0, 7); ctx.fill();
-      ctx.beginPath(); ctx.arc(H.x + L.head * scale * 0.35, H.y + L.head * scale * 0.05, 0.012 * scale, 0, 7); ctx.fill();
-      ctx.strokeStyle = '#c45a6a'; ctx.lineWidth = 0.012 * scale;
-      ctx.beginPath(); ctx.arc(H.x, H.y + L.head * scale * 0.3, L.head * scale * 0.28, 0.2, Math.PI - 0.2); ctx.stroke();
+      const midH = { x: (J.l.H.x + J.r.H.x) / 2, y: 0 };
+      line([J.l.H, J.r.H]);
+      leg(J.l, 1); leg(J.r, 1);
+      line([midH, J.sh]);
+      line([J.l.S, J.r.S]);
+      arm(J.l, 1); arm(J.r, 1);
+      head();
     } else {
-      drawArm(J.l, true);
-      drawLeg(J.l, true);
-      // tronco
-      seg(J.hip, J.sh, 0.19, COL.top);
-      seg(J.hip, { x: J.hip.x + (J.sh.x - J.hip.x) * 0.18, y: J.hip.y + (J.sh.y - J.hip.y) * 0.18 }, 0.2, COL.leg);
-      drawLeg(J.r, false);
-      // cuello y cabeza
-      seg(J.sh, J.head, 0.07, COL.skin);
-      const tdir = { x: Math.sin(rad(pose.t + pose.h)), y: Math.cos(rad(pose.t + pose.h)) };
-      const front = { x: tdir.y, y: -tdir.x };
-      // coleta: sale de la parte trasera-superior de la cabeza y cuelga
-      const root = { x: J.head.x - front.x * L.head * 0.8 + tdir.x * L.head * 0.4, y: J.head.y - front.y * L.head * 0.8 + tdir.y * L.head * 0.4 };
-      const sway = Math.sin(now / 260) * 0.03;
-      const tip = { x: root.x - front.x * 0.14 + sway, y: root.y - 0.17 };
-      const R = P(root), T = P(tip), C = P({ x: root.x - front.x * 0.12, y: root.y - 0.02 });
-      ctx.strokeStyle = COL.hair; ctx.lineWidth = 0.055 * scale; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(R.x, R.y); ctx.quadraticCurveTo(C.x, C.y, T.x, T.y); ctx.stroke();
-      dot(J.head, L.head, COL.skin);
-      // pelo
-      const H = P(J.head);
-      const ang = Math.atan2(-front.y, front.x); // en coords de pantalla
-      ctx.fillStyle = COL.hair;
-      ctx.beginPath();
-      ctx.arc(H.x, H.y, L.head * scale * 1.03, ang + Math.PI * 0.55 - Math.PI * 2, ang - Math.PI * 0.12);
-      ctx.closePath(); ctx.fill();
-      // ojo
-      const eye = P({ x: J.head.x + front.x * L.head * 0.55 + tdir.x * 0.01, y: J.head.y + front.y * L.head * 0.55 + tdir.y * 0.01 });
-      ctx.fillStyle = '#3a2a2a'; ctx.beginPath(); ctx.arc(eye.x, eye.y, 0.012 * scale, 0, 7); ctx.fill();
-      drawArm(J.r, false);
+      // extremidades lejanas más suaves para dar profundidad
+      arm(J.l, 0.28); leg(J.l, 0.28);
+      line([J.hip, J.sh]);
+      leg(J.r, 1);
+      head();
+      arm(J.r, 1);
     }
   }
 }
